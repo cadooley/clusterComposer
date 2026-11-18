@@ -1,0 +1,127 @@
+---
+output: github_document
+---
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "man/figures/README-",
+  out.width = "100%"
+)
+```
+
+# clusterComposer
+
+<!-- badges: start -->
+<!-- badges: end -->
+
+`clusterComposer` generates bespoke spatial sampling frames from
+building footprints or building locations. It groups buildings into spatially
+defined sampling units for use in survey design or updating census frames.
+
+## Installation
+
+You can install the development version of `clusterComposer` like so:
+
+``` r
+# install.packages("pak")
+pak::pak("cadooley/clusterComposer")
+```
+
+## Citation
+
+If you use `clusterComposer` in research or applied work, please cite the
+package. Citation details will be added when the first version is released.
+
+## User instructions
+
+`clusterComposer` generates clusters that meet a target population size with well defined polygon boundaries. `clusterComposer` requires two input datasets: 1. area of interest cut up into sections. Each section must have a clean single polygon geometry. The area of interest can be read into R from any suitable spatial file and could be cleaned in R prior to running `clusterComposer`; 2: building footprints, each with an associated population count. If building footprints are not available, the geometries could be buffered point locations converted into polygons. The building footprints file must be in geopackage format. 
+
+Users must specify the name of the aoi sf object (`aoi`), the file path for the building footprints geopackage (`bf_file_path`), a run ID that forms the name of the output file (`run_id`), and the file path for the output file (`output_file_path`). It is recommended that users specify a suitable number of cores (`n_cores`) as the function splits processing across available computing cores to reduce running time. If needed the user can specify the target population per cluster (`pop_per_EZ`). Note that if this is changed, users should also change the minimum (`min_pop_per_EZ`) and maximum (`max_pop_per_EZ`) population per cluster values too.
+
+  
+While `clusterComposer` is under development, setting this to `FALSE` we recommend that `delete_temp_files` is set to `FALSE`. If set to `TRUE`, intermediate files are deleted when the function exits. Setting to `FALSE` means that results for completed sections can be used/reviewed if an error occurs. These can be found in the "temporary" folder inside the `output_file_path` directory.
+
+Example running code:
+
+
+```{r example, eval=FALSE}
+# read in Area of Interest (aoi)
+AOI <- sf::st_read("cities_data/kolkata_sections.gpkg") 
+# define number of computing cores
+ncores <- parallel::detectCores() - 1
+
+# run clusterComposer function
+clusterComposer(aoi=AOI,
+                bf_file_path = "cities_data/buildingsWithPop_kolkata.gpkg",
+                run_id = "kolkata_20261117",
+                output_file_path = "cities_output",
+                pop_per_EZ=250,
+                max_pop_per_EZ=350,
+                min_pop_per_EZ=150,
+                n_cores = ncores,
+                delete_temp_files = FALSE
+)
+```
+
+## Method overview
+
+The clusterComposer function performs the steps outlined below. Here is an example set of building footprints obtained from the Overture Maps
+Foundation buildings dataset (Overture Maps Foundation, accessed November 2026).
+
+![Example building footprints from Kolkata, India. Data attribution: Overture Maps Foundation, overturemaps.org. © OpenStreetMap
+contributors.*](man/figures/Kolkata_section46_bfs.png)
+
+&nbsp;
+
+**STEP 1:** buffer buildings and merge areas of overlap to create collections of buildings in close proximity. Buffer distance is set such that a collection does not exceed the max population per cluster (enumeration zone) and therefore each collection may have a different buffer distance.
+
+![Step 1: create collections of buildings in close proximity. Data attribution: Overture Maps Foundation, overturemaps.org. © OpenStreetMap
+contributors.*](man/figures/Kolkata_section46_step1_buffering.png)
+
+&nbsp;
+
+**STEP 2:** create minimum area rectangles around building collections and merge rectangles with significant overlap to define sensible cluster areas (this prevents different collections of buildings from being too intertwined).
+
+![Step 2: create block shapes around building collections. Data attribution: Overture Maps Foundation, overturemaps.org. © OpenStreetMap
+contributors.*](man/figures/Kolkata_section46_step2_minarearect.png)
+
+&nbsp;
+
+**STEP 3:** apply hierarchical clustering to spatially combine blocks of building collections to meet target population per cluster.
+
+![Step 3: apply hierarchical clustering. Data attribution: Overture Maps Foundation, overturemaps.org. © OpenStreetMap
+contributors.*](man/figures/Kolkata_section46_step3_hierclust.png)
+
+&nbsp;
+
+**STEP 4:** allocate any small spaces between clusters to neighbouring clusters with the longest shared boundary.
+
+![Step 4: merge small inter-cluster spaces with suitable clusters. Data attribution: Overture Maps Foundation, overturemaps.org. © OpenStreetMap
+contributors.*](man/figures/Kolkata_section46_step4_spacescleanup.png)
+
+![Post Step 4 population per cluster. Data attribution: Overture Maps Foundation, overturemaps.org. © OpenStreetMap
+contributors.*](man/figures/Kolkata_section46_step5_presteppop.png)
+
+&nbsp;
+
+**STEP 5:** combine any clusters below minimum population per cluster to a suitable neighbouring cluster. Clusters are combined only if the resulting population does not exceed the maximum threshold. Where multiple valid combinations are possible, the combination that produces the most spatially compact cluster is performed.
+
+![Step 5: combine any clusters below minimum population per cluster to a suitable neighbouring cluster. Data attribution: Overture Maps Foundation, overturemaps.org. © OpenStreetMap
+contributors.*](man/figures/Kolkata_section46_step5_addlowpopclusts.png)
+
+&nbsp;
+
+**STEP 6:** clean up cluster boundaries to produce lines that go around buildings and are sensible, i.e. not wobbly.
+
+![Step 6: clean up cluster boundaries. Data attribution: Overture Maps Foundation, overturemaps.org. © OpenStreetMap
+contributors.*](man/figures/Kolkata_section46_step6_boundarycleanup.png)
+
+
+## References
+
+Overture Maps Foundation. *Overture Maps data*. 
+https://overturemaps.org/. Accessed November 2026.

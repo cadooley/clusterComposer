@@ -1,0 +1,466 @@
+---
+title: "Creating a Spatial Sampling Frame for Kolkata"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Creating a Spatial Sampling Frame for Kolkata}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  eval = FALSE
+)
+```
+
+## Introduction
+
+This tutorial demonstrates a complete workflow for creating a spatial
+sampling frame for Kolkata using `clusterComposer`.
+
+The workflow consists of four stages:
+
+1. Download the Kolkata boundary, building footprints and road network from
+   Overture Maps.
+2. Divide the area of interest into sections suitable for parallel processing.
+3. Allocate population estimates to individual building footprints.
+4. Run `clusterComposer` to generate the spatial sampling frame.
+
+The code is provided as a worked example and is not run when the vignette is
+built.
+
+## 1. Download the Kolkata boundary, building footprints and roads data
+
+This script downloads the Kolkata administrative boundary, building footprints
+and road network from Overture Maps (Overture Maps Foundation, 2026). The data are saved locally as GeoPackage files for use in the subsequent stages.
+
+```{r download-overture-data}
+
+library(DBI)
+library(duckdb)
+library(sf)
+library(dplyr)
+library(arrow)
+
+con <- dbConnect(duckdb())
+dbExecute(con, "INSTALL spatial;")
+dbExecute(con, "LOAD spatial;")
+dbExecute(con, "INSTALL httpfs;")
+dbExecute(con, "LOAD httpfs;")
+dbExecute(con, "SET s3_region='us-west-2';")
+
+release <- "2026-10-21.0"
+
+### Kolkata city boundary
+
+division_path <- paste0("s3://overturemaps-us-west-2/release/",release,"/theme=divisions/type=division_area/*")
+
+city <- data.frame(admin_name = "Kolkata",search_name = "Kolkata",country = "IN")
+
+dbWriteTable(con,"city_input",city,overwrite = TRUE)
+
+division_sql <- sprintf("
+CREATE OR REPLACE TABLE admin_areas AS
+SELECT
+  c.admin_name,
+  MIN(d.bbox.xmin) AS xmin,
+  MIN(d.bbox.ymin) AS ymin,
+  MAX(d.bbox.xmax) AS xmax,
+  MAX(d.bbox.ymax) AS ymax,
+  ST_Union_Agg(d.geometry) AS geometry
+FROM read_parquet(
+  '%s',
+  filename = TRUE,
+  hive_partitioning = 1
+) d
+JOIN city_input c
+  ON d.country = c.country
+ AND (
+      d.names.primary = c.search_name
+      OR d.names.common['en'] = c.search_name
+ )
+WHERE d.is_land = TRUE
+GROUP BY c.admin_name;
+", division_path)
+
+dbExecute(con, division_sql)
+
+# save the boundary as Parquet
+dbExecute(con, "
+COPY admin_areas
+TO 'admin_unit_kolkata.parquet'
+(FORMAT PARQUET);
+")
+
+# convert the boundary to sf object
+admin <- dbGetQuery(
+  con,
+  "
+  SELECT
+    admin_name,
+    ST_AsWKB(geometry) AS geometry
+  FROM admin_areas
+  "
+)
+
+admin$geometry <- st_as_sfc(admin$geometry,EWKB = TRUE,crs = 4326)
+admin <- st_as_sf(admin)
+
+# save Kolkata boundary as .gpkg
+st_write(admin,"admin_unit_kolkata.gpkg",delete_dsn = TRUE)
+
+### BUILDINGS
+
+building_path <- paste0("s3://overturemaps-us-west-2/release/",release,"/theme=buildings/type=building/*")
+
+building_sql <- sprintf("
+COPY (
+  SELECT
+    a.admin_name,
+    b.id,
+    b.names.primary AS primary_name,
+    b.height,
+    b.geometry
+  FROM read_parquet(
+    '%s',
+    filename = TRUE,
+    hive_partitioning = 1
+  ) b
+  JOIN admin_areas a
+    ON b.bbox.xmax >= a.xmin
+   AND b.bbox.xmin <= a.xmax
+   AND b.bbox.ymax >= a.ymin
+   AND b.bbox.ymin <= a.ymax
+   AND ST_Intersects(b.geometry, a.geometry)
+)
+TO 'buildings_kolkata.parquet'
+(FORMAT PARQUET);
+", building_path)
+
+dbExecute(con, building_sql)
+
+### ROADS
+
+transport_path <- paste0("s3://overturemaps-us-west-2/release/",release,"/theme=transportation/type=segment/*")
+
+roads_sql <- sprintf("
+COPY (
+  SELECT
+    a.admin_name,
+    r.id,
+    r.names.primary AS primary_name,
+    r.class,
+    r.subclass,
+    r.geometry
+  FROM read_parquet(
+    '%s',
+    filename = TRUE,
+    hive_partitioning = 1
+  ) r
+  JOIN admin_areas a
+    ON r.bbox.xmax >= a.xmin
+   AND r.bbox.xmin <= a.xmax
+   AND r.bbox.ymax >= a.ymin
+   AND r.bbox.ymin <= a.ymax
+   AND ST_Intersects(r.geometry, a.geometry)
+)
+TO 'roads_kolkata.parquet'
+(FORMAT PARQUET);
+", transport_path)
+
+dbExecute(con, roads_sql)
+
+# disconnect from DuckDB connection
+dbDisconnect(con, shutdown = TRUE)
+
+### save buildings as gpkg
+
+bld <- read_parquet("buildings_kolkata.parquet")
+bld_geometry <- st_as_sfc(bld$geometry,crs = 4326)
+bld_sf <- st_sf(bld[, setdiff(names(bld), "geometry")],geometry = bld_geometry)
+st_write(bld_sf,"buildings_kolkata.gpkg",delete_dsn = TRUE)
+
+### save roads as gpkg
+
+roads <- read_parquet("roads_kolkata.parquet")
+roads_geometry <- st_as_sfc(roads$geometry,crs = 4326)
+roads_sf <- st_sf(roads[, setdiff(names(roads), "geometry")],geometry = roads_geometry)
+st_write(roads_sf,"roads_kolkata.gpkg",delete_dsn = TRUE)
+```
+
+## 2. Divide the area of interest into sections
+
+`clusterComposer` processes area-of-interest sections in parallel. This script
+uses major roads and railways to divide Kolkata into sections. Large sections
+are split further according to their building counts.
+
+For efficient processing, approximately 1,000 buildings, or around 5,000
+people, per section is recommended.
+
+```{r create-aoi-sections}
+
+library(arrow)
+library(sf)
+library(dplyr)
+
+# read in roads data - this will be used to split the city unit into sections
+roads_all <- st_read("roads_kolkata.gpkg")
+roads_sf <- roads_all[roads_all$class %in% c("motorway", "trunk", "primary", "secondary", "tertiary","light_rail","monorail","tram"),"geom"]
+
+# read in city boundary
+admin <- st_read("admin_unit_kolkata.gpkg")
+
+# create sections using major roads and rail
+sections <- c(st_geometry(roads_sf),st_geometry(st_boundary(admin)))
+lines <- st_union(sections) 
+lines <- st_node(lines)
+poly_strata <- st_polygonize(lines)
+polygons <- st_collection_extract(poly_strata, "POLYGON")
+polygons <- st_cast(polygons, "POLYGON")
+polygons_sf <- st_as_sf(polygons)
+polygons_sf <- polygons_sf[!st_is_empty(polygons_sf), ]
+polygons_sf <- st_make_valid(polygons_sf)
+#polygons_sf <- st_transform(polygons_sf, 4326) 
+polygons_sf$area <- st_area(polygons_sf)
+# merge small polys into neighbours
+thresh <- 50000
+repeat {
+  small_idx <- which(as.numeric(polygons_sf$area) < thresh)
+  if (length(small_idx) == 0) break
+  merged_any <- FALSE
+  for (i in small_idx) {
+    nbr_idx <- st_intersects(polygons_sf[i, ], polygons_sf)[[1]]
+    nbr_idx <- setdiff(nbr_idx, i)
+    if (length(nbr_idx) == 0) next
+    shared_len <- sapply(nbr_idx, function(j) {
+      shared <- st_intersection(
+        st_boundary(st_make_valid(st_geometry(polygons_sf[i, ]))),
+        st_boundary(st_make_valid(st_geometry(polygons_sf[j, ])))
+      )
+      sum(as.numeric(st_length(shared)))
+    })
+    if (max(shared_len) == 0) next
+    target <- nbr_idx[which.max(shared_len)]
+    st_geometry(polygons_sf[target, ]) <- st_union(
+      st_make_valid(st_geometry(polygons_sf[target, ])),
+      st_make_valid(st_geometry(polygons_sf[i, ]))
+    )
+    polygons_sf <- polygons_sf[-i, ]
+    merged_any <- TRUE
+    break
+  }
+  if (!merged_any) break
+}
+polygons_sf <- polygons_sf[!st_is_empty(polygons_sf), ]
+# check count of bfs in each section - reading from file much quicker than st_intersection
+polygons_sf$bld_count <- NA
+for(i in 1:nrow(polygons_sf)){
+  polygons_sf$bld_count[i] <- nrow(sf::st_read(paste0("buildings_kolkata.gpkg"),
+                                               wkt_filter = st_as_text(st_geometry(polygons_sf[i,]))))
+}
+
+# split sections with more than 1000 buildings 
+# define number of splits per section from building count
+polygons_sf$n_split <- case_when(
+  polygons_sf$bld_count <= 1000  ~ 1L,
+  polygons_sf$bld_count <= 2000 ~ 2L,
+  polygons_sf$bld_count <= 3000 ~ 3L,
+  polygons_sf$bld_count <= 4000 ~ 4L,
+  polygons_sf$bld_count <= 8000 ~ 8L,
+  polygons_sf$bld_count <= 16000 ~ 16L,
+  TRUE                           ~ 32L
+)
+to_split <- polygons_sf[polygons_sf$n_split>1,]
+split_polygons <- vector("list", nrow(to_split))
+for (i in seq_len(nrow(to_split))) {
+  poly <- to_split[i, ]
+  n_split <- as.integer(poly$n_split[1])
+  bb <- st_bbox(poly)
+  width <- as.numeric(bb["xmax"] - bb["xmin"])
+  height <- as.numeric(bb["ymax"] - bb["ymin"])
+  aspect_ratio <- max(width, height) / min(width, height)
+  if (aspect_ratio >= 2) {
+    grid_n <- if (width >= height) c(n_split, 1L) else c(1L, n_split)
+  } else {
+    grid_n <- switch(
+      as.character(n_split),
+      "1"  = c(1L, 1L),
+      "2"  = if (width >= height) c(2L, 1L) else c(1L, 2L),
+      "3"  = if (width >= height) c(3L, 1L) else c(1L, 3L),
+      "4"  = c(2L, 2L),
+      "8"  = if (width >= height) c(4L, 2L) else c(2L, 4L),
+      "16" = c(4L, 4L),
+      "32" = if (width >= height) c(8L, 4L) else c(4L, 8L)
+    )
+  }
+  grid <- st_sf(grid_id = seq_len(prod(grid_n)), geometry = st_make_grid(poly, n = grid_n, what = "polygons"))
+  pieces_geom <- suppressWarnings(st_intersection(st_geometry(poly), st_geometry(grid)))
+  pieces_geom <- pieces_geom[!st_is_empty(pieces_geom)]
+  if (any(st_geometry_type(pieces_geom) == "GEOMETRYCOLLECTION")) pieces_geom <- suppressWarnings(st_collection_extract(pieces_geom, "POLYGON"))
+  pieces_geom <- pieces_geom[st_geometry_type(pieces_geom) %in% c("POLYGON", "MULTIPOLYGON")]
+  pieces_geom <- pieces_geom[!st_is_empty(pieces_geom)]
+  original_attributes <- st_drop_geometry(poly)
+  pieces <- st_sf(original_attributes[rep(1L, length(pieces_geom)), , drop = FALSE], grid_id = seq_along(pieces_geom), geometry = pieces_geom)
+  original_area <- as.numeric(st_area(st_union(poly)))
+  pieces <- st_make_valid(pieces)
+  pieces_area <- as.numeric(st_area(st_union(pieces)))
+  split_polygons[[i]] <- pieces
+}
+# create an sf object with both unsplit and split polygons
+unchanged_polygons <- polygons_sf[polygons_sf$n_split == 1, ]
+unchanged_polygons$grid_id <- NA_integer_
+names(unchanged_polygons)[names(unchanged_polygons) == attr(unchanged_polygons, "sf_column")] <- "geometry"
+attr(unchanged_polygons, "sf_column") <- "geometry" 
+polygons_final <- dplyr::bind_rows(unchanged_polygons, split_polygons)
+polygons_final <- st_cast(polygons_final, "MULTIPOLYGON")
+polygons_final <- st_cast(polygons_final, "POLYGON", group_or_split = TRUE)
+polygons_final$area <- st_area(polygons_final)
+# merge any small polys created during splitting into neighbours
+thresh <- 50000
+repeat {
+  small_idx <- which(as.numeric(polygons_final$area) < thresh)
+  if (length(small_idx) == 0) break
+  merged_any <- FALSE
+  for (i in small_idx) {
+    nbr_idx <- st_intersects(polygons_final[i, ], polygons_final)[[1]]
+    nbr_idx <- setdiff(nbr_idx, i)
+    if (length(nbr_idx) == 0) next
+    shared_len <- sapply(nbr_idx, function(j) {
+      shared <- st_intersection(
+        st_boundary(st_make_valid(st_geometry(polygons_final[i, ]))),
+        st_boundary(st_make_valid(st_geometry(polygons_final[j, ])))
+      )
+      sum(as.numeric(st_length(shared)))
+    })
+    if (max(shared_len) == 0) next
+    target <- nbr_idx[which.max(shared_len)]
+    st_geometry(polygons_final[target, ]) <- st_union(
+      st_make_valid(st_geometry(polygons_final[target, ])),
+      st_make_valid(st_geometry(polygons_final[i, ]))
+    )
+    polygons_final <- polygons_final[-i, ]
+    merged_any <- TRUE
+    break
+  }
+  if (!merged_any) break
+}
+polygons_final <- polygons_final[!st_is_empty(polygons_final), ]
+polygons_final$section_id <- seq_len(nrow(polygons_final))
+polygons_final <- polygons_final |>
+  dplyr::select(-n_split, -grid_id)
+# recalc bf count
+polygons_final$bld_count <- NA
+for(i in 1:nrow(polygons_final)){
+  polygons_final$bld_count[i] <- nrow(sf::st_read(paste0("buildings_kolkata.gpkg"),
+                 wkt_filter = st_as_text(st_geometry(polygons_final[i,]))))
+}
+
+# save sections
+st_write(polygons_final,"kolkata_sections.gpkg")
+```
+
+## 3. Allocate population to building footprints
+
+This script disaggregates population from a 100-metre population raster (Bondarenko et al., 2026) across the building footprints whose centroids fall within each raster cell.
+
+In this example, population is allocated in proportion to building footprint
+area. Alternative population-disaggregation methods could be used.
+
+The population raster data can be downloaded from here and saved in a folder called `pop` inside your project/working directory: https://hub.worldpop.org/geodata/summary?id=73809 
+
+```{r prepare-building-population}
+
+library(sf)
+library(dplyr)
+library(arrow)
+library(terra)
+
+# read in Kolkata buildings
+bf <- st_read("buildings_kolkata.gpkg")
+
+# occasionally there are multipolygon buildings, e.g. a company's complex
+# so cast all buildings to polygons, this will split up multipolygons with one row per individual polygon
+n_parts <- lengths(st_geometry(bf))
+mp <- n_parts > 1
+bf <- rbind(st_cast(bf[!mp, ], "POLYGON", warn = FALSE),st_cast(bf[mp, ],  "POLYGON", warn = FALSE))
+
+# create building centroids to identify each buildings' grid cell in the pop raster
+bf_cent <- sf::st_centroid(bf)
+bf_cent$cell_id <- NA
+bf_cent$pop_cell <- NA
+# read in pop raster
+pop <- terra::rast("pop/ind_pop_2027_CN_100m_R2025A_v1.tif")
+# extract raster cell ID and population value for each building centroid
+ext <- terra::extract(pop,vect(bf_cent),cells = TRUE)
+# attach cell ID and population to buildings
+idx <- !is.na(ext[[2]])
+bf_cent$cell_id[idx] <- ext$cell[idx]
+bf_cent$pop_cell[idx] <- ext[[2]][idx]
+# transfer this info from centroids object to footprints object
+bf$cell_id <- bf_cent$cell_id
+bf$pop_cell <- bf_cent$pop_cell
+# calculate building area
+bf$building_area <- as.numeric(sf::st_area(bf))
+# calculate total building area per raster cell based on buildings whose centroids fall into a cell
+cell_areas <- bf |>
+  st_drop_geometry() |>
+  filter(!is.na(cell_id)) |>
+  group_by(cell_id) |>
+  summarise(cell_bld_area = sum(building_area, na.rm = TRUE))
+# join total building areas per cell to buildings object
+bf <- bf |>
+  left_join(cell_areas, by = "cell_id")
+# disaggregate population equally across buildings within each cell based on building area
+bf$pop_building <- bf$pop_cell * (bf$building_area / bf$cell_bld_area)
+# set buildings outside populated cells to zero
+bf$pop_building[is.na(bf$pop_building)] <- 0
+# alternative to line above, drop buildings outside pop data cells (but then structure is not considered in cluster boundary delin)
+#bf <- bf[!is.na(bf$pop_building),]
+rm(ext,cell_areas,bf_cent,idx)
+
+# save
+st_write(bf,"buildingsWithPop_kolkata.gpkg")
+```
+
+## 4. Run `clusterComposer`
+
+The prepared area-of-interest sections and populated building footprints are
+then supplied to `clusterComposer`.
+
+The example uses all but one of the available processor cores. Intermediate
+files are retained so that completed sections can be reviewed if
+an error occurs.
+
+```{r run-cluster-composer}
+
+library(sf)
+library(stars)
+library(dendextend)
+library(dplyr)
+library(rgeoda)
+library(igraph)
+library(parallel)
+
+# read in Area of Interest (aoi)
+AOI <- sf::st_read("cities_data/kolkata_sections.gpkg")
+# define number of computing cores
+ncores <- parallel::detectCores() - 1
+
+# run clusterComposer function
+clusterComposer(aoi=AOI,
+                bf_file_path = "cities_data/buildingsWithPop_kolkata.gpkg",
+                run_id = "kolkata_20261117",
+                output_file_path = "cities_output",
+                n_cores = ncores,
+                delete_temp_files = FALSE
+)
+
+```
+
+## References
+
+Overture Maps Foundation. Overture Maps Data. Overture Maps Foundation. Accessed November 2026. Data attribution: Overture Maps Foundation, overturemaps.org. © OpenStreetMap contributors.
+
+Bondarenko M., Priyatikanto R., Tejedor-Garavito N., Zhang W., McKeen T., Cunningham A., Woods T., Hilton J., Cihan D., Nosatiuk B., Brinkhoff T., Tatem A., Sorichetta A.. 2025 Constrained estimates of 2015-2030 total number of people per grid square at a resolution of 3 arc (approximately 100m at the equator) R2025A version v1. Global Demographic Data Project - Funded by The Bill and Melinda Gates Foundation (INV-045237). WorldPop - School of Geography and Environmental Science, University of Southampton. DOI:10.5258/SOTON/WP00839
