@@ -1,0 +1,13 @@
+bibentry(
+  bibtype = "Manual",
+  title = "clusterComposer: Generate Bespoke Spatial Sampling Frames from Buildings",
+  author = c(
+    person("Claire A.", "Dooley"),
+    person("Caitlin B.", "Clary"),
+    person("Dale A.", "Rhoda"),
+    person("Dana R.", "Thomson")
+  ),
+  year = "2026",
+  note = "R package version 0.1.0",
+  url = "https://github.com/cadooley/clusterComposer"
+)
