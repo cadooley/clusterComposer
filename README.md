@@ -20,9 +20,11 @@ pak::pak("cadooley/clusterComposer")
 If you use `clusterComposer` in research or applied work, please cite
 the package:
 
-Dooley, C.A; Clary, C.B.; Rhoda, D.A. & Thomson, D.R. (2026)
-clusterComposer: generate bespoke spatial sampling frames from
-buildings. R package version 0.1.0. DOI:
+Dooley, C. A., Clary, C. B., Rhoda, D. A., & Thomson, D. R. (2026).
+*clusterComposer: Generate Bespoke Spatial Sampling Frames from
+Buildings.* R package version 0.1.1. DOI:
+<https://doi.org/10.5281/zenodo.24353237>. Repository:
+<https://github.com/cadooley/clusterComposer>.
 
 ## User instructions
 
