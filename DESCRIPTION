@@ -4,13 +4,30 @@ Title: Generate Bespoke Spatial Sampling Frames from Buildings
 Version: 0.1.0
 Authors@R: c(
     person(
-      "Claire", "Dooley",
+      given = "Claire A.",
+      family = "Dooley",
       email = "c.a.dooley53@gmail.com",
-      role = c("aut", "cre")
+      role = c("aut", "cre"),
+      comment = c(ORCID = "0000-0003-2415-9895")
     ),
-    person("Caitlin", "Clary", role = "aut"),
-    person("Dale", "Rhoda", role = "aut"),
-    person("Dana R.", "Thomson", role = "aut")
+    person(
+      given = "Caitlin B.",
+      family = "Clary",
+      role = "aut",
+      comment = c(ORCID = "0000-0001-7283-749X")
+    ),
+    person(
+      given = "Dale A.",
+      family = "Rhoda",
+      role = "aut",
+      comment = c(ORCID = "0000-0003-0948-1368")
+    ),
+    person(
+      given = "Dana R.",
+      family = "Thomson",
+      role = "aut",
+      comment = c(ORCID = "0000-0002-9507-9123")
+    )
   )
 Description: Generates bespoke spatial sampling frames from building
     footprints or building locations. The algorithm groups buildings into
