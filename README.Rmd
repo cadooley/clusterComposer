@@ -22,13 +22,24 @@ defined sampling units for use in survey design or updating census frames.
 You can install the development version of `clusterComposer` like so:
 
 ``` r
-# install.packages("pak")
-pak::pak("cadooley/clusterComposer")
+# if the pak package is not installed, install this first:
+install.packages("pak")
+
+# use the following two lines to install clusterComposer with vignettes available
+Sys.setenv(PKG_BUILD_VIGNETTES = "true")
+pak::pak("cadooley/clusterComposer",dependencies = TRUE)
+
+# once installed, load the clusterComposer package 
+library(clusterComposer)
+
+# if helpful, explore vignettes for a full walk through of downloading and preparing data followed by running the cluster composer function to create a sampling frame
+vignette("clusterComposer", package = "clusterComposer")
+
 ```
 
 ## Citation
 
-If you use `clusterComposer` in research or applied work, please cite the
+If you use `clusterComposer`, please cite the
 package:
 
 Dooley, C. A., Clary, C. B., Rhoda, D. A., & Thomson, D. R. (2026). *clusterComposer: Generate Bespoke Spatial Sampling Frames from Buildings.* R package version 0.1.1. DOI: https://doi.org/10.5281/zenodo.24353237. Repository: https://github.com/cadooley/clusterComposer.
@@ -37,15 +48,18 @@ Dooley, C. A., Clary, C. B., Rhoda, D. A., & Thomson, D. R. (2026). *clusterComp
 
 `clusterComposer` generates clusters that meet a target population size with well defined polygon boundaries. `clusterComposer` requires two input datasets: 1. area of interest cut up into sections. Each section must have a clean single polygon geometry. The area of interest can be read into R from any suitable spatial file and could be cleaned in R prior to running `clusterComposer`; 2: building footprints, each with an associated population count. If building footprints are not available, the geometries could be buffered point locations converted into polygons. The building footprints file must be in geopackage format. 
 
-Users must specify the name of the aoi sf object (`aoi`), the file path for the building footprints geopackage (`bf_file_path`), a run ID that forms the name of the output file (`run_id`), and the file path for the output file (`output_file_path`). It is recommended that users specify a suitable number of cores (`n_cores`) as the function splits processing across available computing cores to reduce running time. If needed the user can specify the target population per cluster (`pop_per_EZ`). Note that if this is changed, users should also change the minimum (`min_pop_per_EZ`) and maximum (`max_pop_per_EZ`) population per cluster values too.
+Users must specify the name of the aoi sf object (`aoi`), the file path for the building footprints geopackage (`bf_file_path`), a run ID that forms the name of the output file (`run_id`), and the file path for the output file (`output_file_path`). It is recommended that users specify a suitable number of cores (`n_cores`) as the function splits processing across available computing cores to reduce running time. If needed, the target population per cluster (`pop_per_EZ`) can be specified. The default is 250 people per cluster. Note that if this is changed, users should also change the minimum (`min_pop_per_EZ`) and maximum (`max_pop_per_EZ`) population per cluster values too.
 
   
-While `clusterComposer` is under development, setting this to `FALSE` we recommend that `delete_temp_files` is set to `FALSE`. If set to `TRUE`, intermediate files are deleted when the function exits. Setting to `FALSE` means that results for completed sections can be used/reviewed if an error occurs. These can be found in the "temporary" folder inside the `output_file_path` directory.
+While `clusterComposer` is under development, we recommend that `delete_temp_files` is set to `FALSE`. If set to `TRUE`, intermediate files are deleted when the function exits. Setting to `FALSE` means that results for completed sections can be used/reviewed if an error occurs. These can be found in the "temporary" folder inside the `output_file_path` directory.
 
 Example running code:
 
 
 ```{r example, eval=FALSE}
+
+library(clusterComposer)
+
 # read in Area of Interest (aoi)
 AOI <- sf::st_read("cities_data/kolkata_sections.gpkg") 
 # define number of computing cores

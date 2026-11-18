@@ -443,6 +443,8 @@ library(rgeoda)
 library(igraph)
 library(parallel)
 
+library(clusterComposer)
+
 # read in Area of Interest (aoi)
 AOI <- sf::st_read("cities_data/kolkata_sections.gpkg")
 # define number of computing cores
@@ -459,7 +461,7 @@ clusterComposer(aoi=AOI,
 
 ```
 
-## Read in output geopackage to inspect the results
+## 5. Read in output geopackage to inspect the results
 
 ```{r evaluate-results-hist}
 

@@ -11,14 +11,23 @@ census frames.
 You can install the development version of `clusterComposer` like so:
 
 ``` r
-# install.packages("pak")
-pak::pak("cadooley/clusterComposer")
+# if the pak package is not installed, install this first:
+install.packages("pak")
+
+# use the following two lines to install clusterComposer with vignettes available
+Sys.setenv(PKG_BUILD_VIGNETTES = "true")
+pak::pak("cadooley/clusterComposer",dependencies = TRUE)
+
+# once installed, load the clusterComposer package 
+library(clusterComposer)
+
+# if helpful, explore vignettes for a full walk through of downloading and preparing data followed by running the cluster composer function to create a sampling frame
+vignette("clusterComposer", package = "clusterComposer")
 ```
 
 ## Citation
 
-If you use `clusterComposer` in research or applied work, please cite
-the package:
+If you use `clusterComposer`, please cite the package:
 
 Dooley, C. A., Clary, C. B., Rhoda, D. A., & Thomson, D. R. (2026).
 *clusterComposer: Generate Bespoke Spatial Sampling Frames from
@@ -43,22 +52,25 @@ for the building footprints geopackage (`bf_file_path`), a run ID that
 forms the name of the output file (`run_id`), and the file path for the
 output file (`output_file_path`). It is recommended that users specify a
 suitable number of cores (`n_cores`) as the function splits processing
-across available computing cores to reduce running time. If needed the
-user can specify the target population per cluster (`pop_per_EZ`). Note
-that if this is changed, users should also change the minimum
-(`min_pop_per_EZ`) and maximum (`max_pop_per_EZ`) population per cluster
-values too.
+across available computing cores to reduce running time. If needed, the
+target population per cluster (`pop_per_EZ`) can be specified. The
+default is 250 people per cluster. Note that if this is changed, users
+should also change the minimum (`min_pop_per_EZ`) and maximum
+(`max_pop_per_EZ`) population per cluster values too.
 
-While `clusterComposer` is under development, setting this to `FALSE` we
-recommend that `delete_temp_files` is set to `FALSE`. If set to `TRUE`,
-intermediate files are deleted when the function exits. Setting to
-`FALSE` means that results for completed sections can be used/reviewed
-if an error occurs. These can be found in the “temporary” folder inside
-the `output_file_path` directory.
+While `clusterComposer` is under development, we recommend that
+`delete_temp_files` is set to `FALSE`. If set to `TRUE`, intermediate
+files are deleted when the function exits. Setting to `FALSE` means that
+results for completed sections can be used/reviewed if an error occurs.
+These can be found in the “temporary” folder inside the
+`output_file_path` directory.
 
 Example running code:
 
 ``` r
+
+library(clusterComposer)
+
 # read in Area of Interest (aoi)
 AOI <- sf::st_read("cities_data/kolkata_sections.gpkg") 
 # define number of computing cores
