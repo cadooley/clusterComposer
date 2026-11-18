@@ -2,7 +2,7 @@
 % Please edit documentation in R/clusterComposer.R
 \name{clusterComposer}
 \alias{clusterComposer}
-\title{Generate Bespoke Spatial Survey Sampling Frames from Buildings}
+\title{Generate Bespoke Spatial Sampling Frames from Buildings}
 \usage{
 clusterComposer(
   aoi,
@@ -48,5 +48,5 @@ clusterComposer(
 \item{delete_temp_files}{Logical. Default is TRUE. If `TRUE`, intermediate files are deleted when the function exits. If `FALSE`, they are retained.}
 }
 \description{
-Generate Bespoke Spatial Survey Sampling Frames from Buildings
+Generate Bespoke Spatial Sampling Frames from Buildings
 }

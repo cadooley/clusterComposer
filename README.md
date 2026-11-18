@@ -1,11 +1,5 @@
 
-<!-- README.md is generated from README.Rmd. Please edit that file -->
-
 # clusterComposer
-
-<!-- badges: start -->
-
-<!-- badges: end -->
 
 `clusterComposer` generates bespoke spatial sampling frames from
 building footprints or building locations. It groups buildings into
@@ -24,8 +18,11 @@ pak::pak("cadooley/clusterComposer")
 ## Citation
 
 If you use `clusterComposer` in research or applied work, please cite
-the package. Citation details will be added when the first version is
-released.
+the package:
+
+Dooley, C.A; Clary, C.B.; Rhoda, D.A. & Thomson, D.R. (2026)
+clusterComposer: generate bespoke spatial sampling frames from
+buildings. R package version 0.1.0. DOI:
 
 ## User instructions
 

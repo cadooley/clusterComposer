@@ -3,7 +3,7 @@ utils::globalVariables(c(
   "group_id", "overlap_group", "pop", "pop_building"
 ))
 
-#' Generate Bespoke Spatial Survey Sampling Frames from Buildings
+#' Generate Bespoke Spatial Sampling Frames from Buildings
 #'
 #' @param aoi Character string. Area of Interest split into sections with one single polygon per section.
 #' @param bf_file_path Character string. File pathway to the building footprints geopackage file (.gpgk). This file should contain geometries of each building along with their population count in a column named "pop_building".
