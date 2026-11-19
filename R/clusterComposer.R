@@ -1,5 +1,5 @@
 utils::globalVariables(c(
-  ".", ".N", ":=", "ID", "available_cores", "cid",
+  ".", ".N", ":=", "ID", "cid",
   "group_id", "overlap_group", "pop", "pop_building"
 ))
 
@@ -43,8 +43,9 @@ clusterComposer <- function(
 ){
 
   # check number of cores specified by user does not exceed those available
-  if(n_cores > parallel::detectCores()){
-    message("Requested ", n_cores, " cores, but only ", parallel::detectCores(), " are available. Using ", parallel::detectCores(), " cores.")
+  available_cores <- parallel::detectCores()
+  if(n_cores > available_cores){
+    message("Requested ", n_cores, " cores, but only ", available_cores, " are available. Using ", available_cores, " cores.")
     n_cores <- available_cores
   }
 
