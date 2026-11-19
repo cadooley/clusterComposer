@@ -41,6 +41,7 @@ Imports:
     dendextend,
     dplyr,
     igraph,
+    lwgeom,
     rgeoda,
     sf,
     stars
