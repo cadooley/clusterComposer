@@ -19,6 +19,7 @@ utils::globalVariables(c(
 #' @param n_cores Numeric, single number. Default is 1. The number of computer cores you would like for processing. Recommend using your total number of cores minus 1. Use parallel::detectCores() to find the total number of cores available on your computer.
 #' @param delete_temp_files Logical. Default is TRUE. If `TRUE`, intermediate files are deleted when the function exits. If `FALSE`, they are retained.
 #' @import dplyr
+#' @importFrom data.table as.data.table
 #' @import rgeoda
 #' @import stars
 #' @import sf
@@ -76,6 +77,7 @@ clusterComposer <- function(
     library(stars)
     library(dendextend)
     library(dplyr)
+    library(data.table)
     library(rgeoda)
     library(igraph)
   })
