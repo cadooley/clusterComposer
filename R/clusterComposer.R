@@ -115,7 +115,7 @@ clusterComposer <- function(
         final_polys <- rbind(final_polys, st_sf(ID = 1L, bldCount = nrow(bf), pop = sum(bf$pop_building), area = as.numeric(st_area(geom)), section_ID = section, geometry = geom))
       }
       final_polys_path <- file.path(temp_folder,paste0(run_id, "_", section, ".gpkg"))
-      st_write(final_polys, final_polys_path)
+      st_write(final_polys, final_polys_path, append = FALSE)
       return()
     }
 
@@ -809,7 +809,7 @@ clusterComposer <- function(
 
     # save section clusters
     final_polys_path <- file.path(temp_folder,paste0(run_id, "_", section, ".gpkg"))
-    st_write(final_polys, final_polys_path)
+    st_write(final_polys, final_polys_path, append = FALSE)
 
   }))
 
@@ -818,6 +818,6 @@ clusterComposer <- function(
   cluster_polys <- do.call(rbind, cluster_polys)
   cluster_polys$ID <- 1:nrow(cluster_polys)
   cluster_polys_path <- file.path(output_file_path,paste0(run_id, "_clusters.gpkg"))
-  st_write(cluster_polys, cluster_polys_path)
+  st_write(cluster_polys, cluster_polys_path, append = FALSE)
 
 }
