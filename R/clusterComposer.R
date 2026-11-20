@@ -811,7 +811,7 @@ clusterComposer <- function(
     final_polys_path <- file.path(temp_folder,paste0(run_id, "_", section, ".gpkg"))
     st_write(final_polys, final_polys_path, append = FALSE)
 
-  }))
+  }, chunk.size = 1L))
 
   temp_files <- list.files(temp_folder,pattern = "\\.gpkg$",full.names = TRUE)
   cluster_polys <- lapply(temp_files, sf::st_read, quiet = TRUE)
