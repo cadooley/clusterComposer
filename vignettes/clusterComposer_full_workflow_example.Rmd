@@ -1,5 +1,5 @@
 ---
-title: "Creating a Spatial Sampling Frame for Kolkata"
+title: "Full Workflow for Creating a Spatial Sampling Frame for Kolkata"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{Creating a Spatial Sampling Frame for Kolkata}
