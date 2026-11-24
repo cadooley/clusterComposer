@@ -8,16 +8,6 @@ census frames.
 
 ## Installation
 
-### Linux system dependencies
-
-On Ubuntu or Debian, install the required system libraries before
-installing `clusterComposer`:
-
-``` bash
-sudo apt update
-sudo apt install libgdal-dev libgeos-dev libproj-dev libglpk-dev
-```
-
 You can install the development version of `clusterComposer` like so:
 
 ``` r
@@ -34,6 +24,20 @@ library(clusterComposer)
 # if helpful, explore vignettes for a full walk through of downloading and preparing data followed by running the cluster composer function to create a sampling frame
 vignette("clusterComposer", package = "clusterComposer")
 ```
+
+### Linux users
+
+Most users can install `clusterComposer` directly using the instructions
+above. On Ubuntu or Debian systems, you need to install the required
+system libraries before installing `clusterComposer`:
+
+``` bash
+sudo apt update
+sudo apt install libgdal-dev libgeos-dev libproj-dev libglpk-dev
+```
+
+Once these are installed, repeat the `clusterComposer` package
+installation steps above.
 
 ## Citation
 
@@ -124,10 +128,10 @@ buffer distance.
 
 <figure>
 <img src="man/figures/Kolkata_section46_step1_buffering.png"
-alt="Step 1: create collections of buildings in close proximity. Data attribution: Overture Maps Foundation, overturemaps.org. © OpenStreetMap contributors.*" />
+alt="Step 1: create collections of buildings in close proximity. Data attribution: Overture Maps Foundation, overturemaps.org. © OpenStreetMap contributors." />
 <figcaption aria-hidden="true">Step 1: create collections of buildings
 in close proximity. Data attribution: Overture Maps Foundation,
-overturemaps.org. © OpenStreetMap contributors.*</figcaption>
+overturemaps.org. © OpenStreetMap contributors.</figcaption>
 </figure>
 
  
@@ -139,10 +143,10 @@ intertwined).
 
 <figure>
 <img src="man/figures/Kolkata_section46_step2_minarearect.png"
-alt="Step 2: create block shapes around building collections. Data attribution: Overture Maps Foundation, overturemaps.org. © OpenStreetMap contributors.*" />
+alt="Step 2: create block shapes around building collections. Data attribution: Overture Maps Foundation, overturemaps.org. © OpenStreetMap contributors." />
 <figcaption aria-hidden="true">Step 2: create block shapes around
 building collections. Data attribution: Overture Maps Foundation,
-overturemaps.org. © OpenStreetMap contributors.*</figcaption>
+overturemaps.org. © OpenStreetMap contributors.</figcaption>
 </figure>
 
  
@@ -152,10 +156,10 @@ building collections to meet target population per cluster.
 
 <figure>
 <img src="man/figures/Kolkata_section46_step3_hierclust.png"
-alt="Step 3: apply hierarchical clustering. Data attribution: Overture Maps Foundation, overturemaps.org. © OpenStreetMap contributors.*" />
+alt="Step 3: apply hierarchical clustering. Data attribution: Overture Maps Foundation, overturemaps.org. © OpenStreetMap contributors." />
 <figcaption aria-hidden="true">Step 3: apply hierarchical clustering.
 Data attribution: Overture Maps Foundation, overturemaps.org. ©
-OpenStreetMap contributors.*</figcaption>
+OpenStreetMap contributors.</figcaption>
 </figure>
 
  
@@ -173,10 +177,10 @@ overturemaps.org. © OpenStreetMap contributors.*</figcaption>
 
 <figure>
 <img src="man/figures/Kolkata_section46_step5_presteppop.png"
-alt="Post Step 4 population per cluster. Data attribution: Overture Maps Foundation, overturemaps.org. © OpenStreetMap contributors.*" />
+alt="Post Step 4 population per cluster. Data attribution: Overture Maps Foundation, overturemaps.org. © OpenStreetMap contributors." />
 <figcaption aria-hidden="true">Post Step 4 population per cluster. Data
 attribution: Overture Maps Foundation, overturemaps.org. © OpenStreetMap
-contributors.*</figcaption>
+contributors.</figcaption>
 </figure>
 
  
@@ -189,11 +193,11 @@ the most spatially compact cluster is performed.
 
 <figure>
 <img src="man/figures/Kolkata_section46_step5_addlowpopclusts.png"
-alt="Step 5: combine any clusters below minimum population per cluster to a suitable neighbouring cluster. Data attribution: Overture Maps Foundation, overturemaps.org. © OpenStreetMap contributors.*" />
+alt="Step 5: combine any clusters below minimum population per cluster to a suitable neighbouring cluster. Data attribution: Overture Maps Foundation, overturemaps.org. © OpenStreetMap contributors." />
 <figcaption aria-hidden="true">Step 5: combine any clusters below
 minimum population per cluster to a suitable neighbouring cluster. Data
 attribution: Overture Maps Foundation, overturemaps.org. © OpenStreetMap
-contributors.*</figcaption>
+contributors.</figcaption>
 </figure>
 
  
@@ -203,10 +207,10 @@ buildings and are sensible, i.e. not wobbly.
 
 <figure>
 <img src="man/figures/Kolkata_section46_step6_boundarycleanup.png"
-alt="Step 6: clean up cluster boundaries. Data attribution: Overture Maps Foundation, overturemaps.org. © OpenStreetMap contributors.*" />
+alt="Step 6: clean up cluster boundaries. Data attribution: Overture Maps Foundation, overturemaps.org. © OpenStreetMap contributors." />
 <figcaption aria-hidden="true">Step 6: clean up cluster boundaries. Data
 attribution: Overture Maps Foundation, overturemaps.org. © OpenStreetMap
-contributors.*</figcaption>
+contributors.</figcaption>
 </figure>
 
 ## References

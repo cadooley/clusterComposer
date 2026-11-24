@@ -19,16 +19,6 @@ defined sampling units for use in survey design or updating census frames.
 
 ## Installation
 
-### Linux system dependencies
-
-On Ubuntu or Debian, install the required system libraries before installing
-`clusterComposer`:
-
-```{bash, eval=FALSE}
-sudo apt update
-sudo apt install libgdal-dev libgeos-dev libproj-dev libglpk-dev
-```
-
 You can install the development version of `clusterComposer` like so:
 
 ``` r
@@ -46,6 +36,18 @@ library(clusterComposer)
 vignette("clusterComposer", package = "clusterComposer")
 
 ```
+
+### Linux users
+
+Most users can install `clusterComposer` directly using the instructions above. On Ubuntu or Debian systems, you need to install the required system libraries before installing
+`clusterComposer`:
+
+```{bash, eval=FALSE}
+sudo apt update
+sudo apt install libgdal-dev libgeos-dev libproj-dev libglpk-dev
+```
+
+Once these are installed, repeat the `clusterComposer` package installation steps above.
 
 ## Citation
 
@@ -101,21 +103,21 @@ contributors.*](man/figures/Kolkata_section46_bfs.png)
 **STEP 1:** buffer buildings and merge areas of overlap to create collections of buildings in close proximity. Buffer distance is set such that a collection does not exceed the max population per cluster (enumeration zone) and therefore each collection may have a different buffer distance.
 
 ![Step 1: create collections of buildings in close proximity. Data attribution: Overture Maps Foundation, overturemaps.org. © OpenStreetMap
-contributors.*](man/figures/Kolkata_section46_step1_buffering.png)
+contributors.](man/figures/Kolkata_section46_step1_buffering.png)
 
 &nbsp;
 
 **STEP 2:** create minimum area rectangles around building collections and merge rectangles with significant overlap to define sensible cluster areas (this prevents different collections of buildings from being too intertwined).
 
 ![Step 2: create block shapes around building collections. Data attribution: Overture Maps Foundation, overturemaps.org. © OpenStreetMap
-contributors.*](man/figures/Kolkata_section46_step2_minarearect.png)
+contributors.](man/figures/Kolkata_section46_step2_minarearect.png)
 
 &nbsp;
 
 **STEP 3:** apply hierarchical clustering to spatially combine blocks of building collections to meet target population per cluster.
 
 ![Step 3: apply hierarchical clustering. Data attribution: Overture Maps Foundation, overturemaps.org. © OpenStreetMap
-contributors.*](man/figures/Kolkata_section46_step3_hierclust.png)
+contributors.](man/figures/Kolkata_section46_step3_hierclust.png)
 
 &nbsp;
 
@@ -125,21 +127,21 @@ contributors.*](man/figures/Kolkata_section46_step3_hierclust.png)
 contributors.*](man/figures/Kolkata_section46_step4_spacescleanup.png)
 
 ![Post Step 4 population per cluster. Data attribution: Overture Maps Foundation, overturemaps.org. © OpenStreetMap
-contributors.*](man/figures/Kolkata_section46_step5_presteppop.png)
+contributors.](man/figures/Kolkata_section46_step5_presteppop.png)
 
 &nbsp;
 
 **STEP 5:** combine any clusters below minimum population per cluster to a suitable neighbouring cluster. Clusters are combined only if the resulting population does not exceed the maximum threshold. Where multiple valid combinations are possible, the combination that produces the most spatially compact cluster is performed.
 
 ![Step 5: combine any clusters below minimum population per cluster to a suitable neighbouring cluster. Data attribution: Overture Maps Foundation, overturemaps.org. © OpenStreetMap
-contributors.*](man/figures/Kolkata_section46_step5_addlowpopclusts.png)
+contributors.](man/figures/Kolkata_section46_step5_addlowpopclusts.png)
 
 &nbsp;
 
 **STEP 6:** clean up cluster boundaries to produce lines that go around buildings and are sensible, i.e. not wobbly.
 
 ![Step 6: clean up cluster boundaries. Data attribution: Overture Maps Foundation, overturemaps.org. © OpenStreetMap
-contributors.*](man/figures/Kolkata_section46_step6_boundarycleanup.png)
+contributors.](man/figures/Kolkata_section46_step6_boundarycleanup.png)
 
 
 ## References

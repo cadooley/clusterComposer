@@ -436,13 +436,6 @@ an error occurs.
 ```{r run-cluster-composer}
 
 library(sf)
-library(stars)
-library(dendextend)
-library(dplyr)
-library(rgeoda)
-library(igraph)
-library(parallel)
-
 library(clusterComposer)
 
 # read in Area of Interest (aoi)
