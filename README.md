@@ -122,6 +122,17 @@ demonstrate the full workflow of downloading and preparing data, running
 the output sampling frame geopackage file. Completing all steps in this
 vignette will take some time (~1-2 hours).
 
+To access the vignettes use the following code.
+
+``` r
+# load the package
+library(clusterComposer)
+
+# use the following code to open a html page in your web browser that lists all available vignettes and provides links to open each one
+system.file("doc", package = "clusterComposer")
+browseVignettes("clusterComposer")
+```
+
 ## Method overview
 
 The clusterComposer function performs the steps outlined below. Here is
